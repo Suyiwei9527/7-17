@@ -6,12 +6,12 @@
 <style>
 /* 全局背景：米白色 */
 body {
-    background: #FFF8E7; /* 米白色 */
-    color: #333; /* 深灰色字体，防止太刺眼 */
+    background: #FFF8E7; 
+    color: #333; 
     font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
     margin: 0;
     padding: 0;
-    overflow: hidden;
+    overflow: hidden; /* 隐藏滚动条 */
 }
 
 /* 顶部标题区 */
@@ -22,6 +22,8 @@ body {
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    z-index: 10;
+    position: relative;
 }
 
 .header h1 {
@@ -31,28 +33,46 @@ body {
     text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
 }
 
-/* 弹幕区域 */
+/* 弹幕容器：全屏 */
 #box {
-    position: absolute;
-    top: 120px; /* 留出标题位置 */
-    bottom: 130px;
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    overflow: hidden;
+    height: 100%;
+    pointer-events: none; /* 允许点击穿透 */
+    z-index: 1;
 }
 
-/* 弹幕样式 */
+/* 单个弹幕样式 */
 .song {
+    position: absolute;
+    white-space: nowrap;
     font-size: 26px;
     font-weight: bold;
-    color: #FF5722; /* 暖橙色弹幕，显眼又亲切 */
-    margin: 15px 0;
-    animation: up 8s linear infinite;
+    color: #FF5722; 
     text-shadow: 1px 1px 0 #fff;
+    
+    /* 核心动画：从右到左 */
+    animation-name: flyLeft;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    
+    /* 初始位置：右侧屏幕外 */
+    right: -200px; 
+    top: 0; /* JS动态计算 */
 }
 
-@keyframes up {
-    from { transform: translateY(100px); opacity: 0; }
-    to { transform: translateY(-800px); opacity: 1; }
+/* 关键帧：从右飞到左 */
+@keyframes flyLeft {
+    from { 
+        transform: translateX(0); 
+        opacity: 1;
+    }
+    to { 
+        transform: translateX(calc(-100vw - 200px)); /* 飞出左边屏幕 */
+        opacity: 1;
+    }
 }
 
 /* 底部表单 */
@@ -64,6 +84,7 @@ form {
     background: rgba(255,255,255,0.9);
     padding: 15px 0;
     box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 100;
 }
 
 input {
@@ -94,15 +115,12 @@ button:hover {
 </head>
 <body>
 
-<!-- 顶部标题 -->
 <div class="header">
     <h1>🎵 让世界聆听你的心情 🎵</h1>
 </div>
 
-<!-- 弹幕区 -->
 <div id="box"></div>
 
-<!-- 点歌表单 -->
 <form onsubmit="addSong(); return false;">
     <input id="song" placeholder="输入歌曲名，送出你的心情">
     <button type="submit">点歌</button>
@@ -112,6 +130,9 @@ button:hover {
 const BIN_ID = "6a0d4780ee5a733b12eaecb8";
 const API_KEY = "$2a$10$ZI7XTwHPFdsSQuKzUC9WPeqlkudvxp1/inDWcKczKLVynCAjKdOWC";
 const URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+// 用来记录当前显示的弹幕，防止重复渲染
+let currentSongs = [];
 
 async function getSongs() {
     let r = await fetch(URL, {
@@ -141,17 +162,58 @@ async function addSong() {
     document.getElementById("song").value = "";
 }
 
+// 创建弹幕DOM元素
+function createDanmu(text) {
+    const box = document.getElementById("box");
+    const d = document.createElement("div");
+    d.className = "song";
+    d.innerText = "🎤 " + text;
+    
+    // 1. 随机垂直位置 (避开标题和底部表单)
+    const topPos = Math.random() * (window.innerHeight - 150) + 80;
+    d.style.top = topPos + "px";
+    
+    // 2. 随机速度 (15秒到25秒飞完，比之前慢)
+    const duration = 15 + Math.random() * 10; 
+    d.style.animationDuration = duration + "s";
+    
+    // 3. 随机延迟 (0-5秒后才开始飞)
+    const delay = Math.random() * 5;
+    d.style.animationDelay = delay + "s";
+    
+    box.appendChild(d);
+
+    // 动画结束后移除元素，防止DOM过多卡顿
+    setTimeout(() => {
+        if (d.parentNode) {
+            d.parentNode.removeChild(d);
+        }
+    }, (duration + delay) * 1000);
+}
+
+// 定时拉取数据并检查新歌
 setInterval(async () => {
     let songs = await getSongs();
-    let box = document.getElementById("box");
-    box.innerHTML = "";
-    songs.slice(-15).reverse().forEach(s => {
-        let d = document.createElement("div");
-        d.className = "song";
-        d.innerText = "🎤 " + s.name;
-        box.appendChild(d);
-    });
+    
+    // 简单的去重逻辑：只处理新增的歌曲
+    if (songs.length > currentSongs.length) {
+        let newSongs = songs.slice(currentSongs.length);
+        newSongs.forEach(s => {
+            createDanmu(s.name);
+        });
+        currentSongs = songs;
+    }
 }, 3000);
+
+// 初始化时加载已有的最后几条，避免刷新后没弹幕
+window.onload = async () => {
+    let songs = await getSongs();
+    currentSongs = songs;
+    // 只展示最近5条，防止一上来就爆屏
+    songs.slice(-5).forEach(s => {
+        createDanmu(s.name);
+    });
+};
 </script>
 
 </body>
