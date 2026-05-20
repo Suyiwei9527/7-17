@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>🎤 点歌弹幕</title>
+<style>
+body {
+    background: #000;
+    color: #FFD700;
+    font-family: sans-serif;
+    overflow: hidden;
+}
+#box {
+    position: absolute;
+    bottom: 120px;
+    width: 100%;
+}
+.song {
+    font-size: 28px;
+    margin: 12px;
+    animation: up 7s linear infinite;
+}
+@keyframes up {
+    from { transform: translateY(100px); opacity: 0; }
+    to { transform: translateY(-800px); opacity: 1; }
+}
+form {
+    position: fixed;
+    bottom: 20px;
+    width: 100%;
+    text-align: center;
+}
+input {
+    width: 65%;
+    font-size: 20px;
+}
+button {
+    font-size: 20px;
+    background: #FFD700;
+}
+</style>
+</head>
+<body>
+
+<div id="box"></div>
+
+<form onsubmit="addSong(); return false;">
+    <input id="song" placeholder="输入歌曲名点歌">
+    <button>点歌</button>
+</form>
+
+<script>
+const BIN_ID = "6a0d4780ee5a733b12eaecb8";
+const API_KEY = "$2a$10$ZI7XTwHPFdsSQuKzUC9WPeqlkudvxp1/inDWcKczKLVynCAjKdOWC";
+const URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+async function getSongs() {
+    let r = await fetch(URL, {
+        headers: { "X-Master-Key": API_KEY }
+    });
+    let j = await r.json();
+    return j.record.songs || [];
+}
+
+async function saveSongs(songs) {
+    await fetch(URL, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Master-Key": API_KEY
+        },
+        body: JSON.stringify({ songs })
+    });
+}
+
+async function addSong() {
+    let name = document.getElementById("song").value;
+    if (!name) return;
+    let songs = await getSongs();
+    songs.push({ name, time: Date.now() });
+    await saveSongs(songs);
+    document.getElementById("song").value = "";
+}
+
+setInterval(async () => {
+    let songs = await getSongs();
+    let box = document.getElementById("box");
+    box.innerHTML = "";
+    songs.slice(-20).forEach(s => {
+        let d = document.createElement("div");
+        d.className = "song";
+        d.innerText = "🎵 " + s.name;
+        box.appendChild(d);
+    });
+}, 3000);
+</script>
+
+</body>
+</html>
