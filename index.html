@@ -4,49 +4,108 @@
 <meta charset="UTF-8">
 <title>🎤 点歌弹幕</title>
 <style>
+/* 全局背景：米白色 */
 body {
-    background: #000;
-    color: #FFD700;
-    font-family: sans-serif;
+    background: #FFF8E7; /* 米白色 */
+    color: #333; /* 深灰色字体，防止太刺眼 */
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    margin: 0;
+    padding: 0;
     overflow: hidden;
 }
+
+/* 顶部标题区 */
+.header {
+    text-align: center;
+    padding: 20px 10px 10px 10px;
+    background: linear-gradient(135deg, #FFD700, #FF8C00);
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+/* 弹幕区域 */
 #box {
     position: absolute;
-    bottom: 120px;
+    top: 120px; /* 留出标题位置 */
+    bottom: 130px;
     width: 100%;
+    overflow: hidden;
 }
+
+/* 弹幕样式 */
 .song {
-    font-size: 28px;
-    margin: 12px;
-    animation: up 7s linear infinite;
+    font-size: 26px;
+    font-weight: bold;
+    color: #FF5722; /* 暖橙色弹幕，显眼又亲切 */
+    margin: 15px 0;
+    animation: up 8s linear infinite;
+    text-shadow: 1px 1px 0 #fff;
 }
+
 @keyframes up {
     from { transform: translateY(100px); opacity: 0; }
     to { transform: translateY(-800px); opacity: 1; }
 }
+
+/* 底部表单 */
 form {
     position: fixed;
     bottom: 20px;
     width: 100%;
     text-align: center;
+    background: rgba(255,255,255,0.9);
+    padding: 15px 0;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
 }
+
 input {
-    width: 65%;
-    font-size: 20px;
+    width: 60%;
+    font-size: 18px;
+    padding: 10px;
+    border: 2px solid #FFD700;
+    border-radius: 25px;
+    outline: none;
+    text-align: center;
 }
+
 button {
-    font-size: 20px;
-    background: #FFD700;
+    font-size: 18px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    background: #FF5722;
+    color: white;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+button:hover {
+    background: #FF8C00;
 }
 </style>
 </head>
 <body>
 
+<!-- 顶部标题 -->
+<div class="header">
+    <h1>🎵 让世界聆听你的心情 🎵</h1>
+</div>
+
+<!-- 弹幕区 -->
 <div id="box"></div>
 
+<!-- 点歌表单 -->
 <form onsubmit="addSong(); return false;">
-    <input id="song" placeholder="输入歌曲名点歌">
-    <button>点歌</button>
+    <input id="song" placeholder="输入歌曲名，送出你的心情">
+    <button type="submit">点歌</button>
 </form>
 
 <script>
@@ -86,10 +145,10 @@ setInterval(async () => {
     let songs = await getSongs();
     let box = document.getElementById("box");
     box.innerHTML = "";
-    songs.slice(-20).forEach(s => {
+    songs.slice(-15).reverse().forEach(s => {
         let d = document.createElement("div");
         d.className = "song";
-        d.innerText = "🎵 " + s.name;
+        d.innerText = "🎤 " + s.name;
         box.appendChild(d);
     });
 }, 3000);
